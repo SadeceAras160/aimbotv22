@@ -1,0 +1,234 @@
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// Settings
+local settings = {
+    Enabled = false,
+    Smoothness = 0.1,
+    AimPart = "Head",
+    AimKey = Enum.KeyCode.E,
+    Prediction = 0.13,
+    RenderDistance = 1000,
+    ShowFOV = true,
+    ShowTracer = true,
+    FOVRadius = 120,
+    WallCheck = true
+}
+
+--// GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "AimbotGUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 540)
+frame.Position = UDim2.new(0, 50, 0.5, -270)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel", frame)
+title.Text = "FutB.wtf"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+
+--// Toggle Button Generator
+local function createToggleButton(settingName, position)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 25)
+    btn.Position = UDim2.new(0, 10, 0, position)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 18
+
+    local function updateText()
+        btn.Text = settingName .. ": " .. (settings[settingName] and "ON" or "OFF")
+    end
+
+    updateText()
+
+    btn.MouseButton1Click:Connect(function()
+        settings[settingName] = not settings[settingName]
+        updateText()
+    end)
+
+    return btn
+end
+
+--// Text Box Generator
+local function createTextBox(name, position, default, callback)
+    local lbl = Instance.new("TextLabel", frame)
+    lbl.Text = name .. ": " .. tostring(default)
+    lbl.TextColor3 = Color3.new(1,1,1)
+    lbl.BackgroundTransparency = 1
+    lbl.Position = UDim2.new(0, 10, 0, position)
+    lbl.Size = UDim2.new(1, -20, 0, 20)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.SourceSans
+    lbl.TextSize = 16
+
+    local box = Instance.new("TextBox", frame)
+    box.Size = UDim2.new(1, -20, 0, 25)
+    box.Position = UDim2.new(0, 10, 0, position + 20)
+    box.Text = tostring(default)
+    box.TextColor3 = Color3.new(1, 1, 1)
+    box.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    box.Font = Enum.Font.SourceSans
+    box.TextSize = 16
+    box.FocusLost:Connect(function()
+        local val = tonumber(box.Text)
+        if val then
+            callback(val)
+            lbl.Text = name .. ": " .. tostring(val)
+        end
+    end)
+end
+
+-- Toggle Buttons
+createToggleButton("Enabled", 50)
+createTextBox("Smoothness", 90, settings.Smoothness, function(v) settings.Smoothness = v end)
+createTextBox("Prediction", 150, settings.Prediction, function(v) settings.Prediction = v end)
+createTextBox("Render Distance", 210, settings.RenderDistance, function(v) settings.RenderDistance = v end)
+createTextBox("FOV Radius", 270, settings.FOVRadius, function(v) settings.FOVRadius = v end)
+
+-- Aim Part Selector
+local parts = {"Head", "Torso"}
+local currentPart = 1
+local aimPartLabel = Instance.new("TextLabel", frame)
+aimPartLabel.Text = "Aim Part: " .. parts[currentPart]
+aimPartLabel.TextColor3 = Color3.new(1,1,1)
+aimPartLabel.BackgroundTransparency = 1
+aimPartLabel.Position = UDim2.new(0, 10, 0, 330)
+aimPartLabel.Size = UDim2.new(1, -20, 0, 20)
+aimPartLabel.Font = Enum.Font.SourceSans
+aimPartLabel.TextSize = 16
+
+local partBtn = Instance.new("TextButton", frame)
+partBtn.Size = UDim2.new(1, -20, 0, 25)
+partBtn.Position = UDim2.new(0, 10, 0, 355)
+partBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+partBtn.TextColor3 = Color3.new(1, 1, 1)
+partBtn.Text = "Change Aim Part"
+partBtn.Font = Enum.Font.SourceSans
+partBtn.TextSize = 18
+partBtn.MouseButton1Click:Connect(function()
+    currentPart = (currentPart % #parts) + 1
+    settings.AimPart = parts[currentPart]
+    aimPartLabel.Text = "Aim Part: " .. settings.AimPart
+end)
+
+-- Aim Key Selector
+local keyLabel = Instance.new("TextLabel", frame)
+keyLabel.Text = "Aim Key: " .. settings.AimKey.Name
+keyLabel.Position = UDim2.new(0, 10, 0, 390)
+keyLabel.Size = UDim2.new(1, -20, 0, 20)
+keyLabel.TextColor3 = Color3.new(1, 1, 1)
+keyLabel.BackgroundTransparency = 1
+keyLabel.Font = Enum.Font.SourceSans
+keyLabel.TextSize = 16
+
+local keyBtn = Instance.new("TextButton", frame)
+keyBtn.Size = UDim2.new(1, -20, 0, 25)
+keyBtn.Position = UDim2.new(0, 10, 0, 415)
+keyBtn.Text = "Change Aim Key"
+keyBtn.Font = Enum.Font.SourceSans
+keyBtn.TextSize = 18
+keyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+keyBtn.TextColor3 = Color3.new(1, 1, 1)
+keyBtn.MouseButton1Click:Connect(function()
+    keyLabel.Text = "Press a key..."
+    local conn
+    conn = UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.UserInputType == Enum.UserInputType.Keyboard then
+            settings.AimKey = input.KeyCode
+            keyLabel.Text = "Aim Key: " .. input.KeyCode.Name
+            conn:Disconnect()
+        end
+    end)
+end)
+
+createToggleButton("ShowFOV", 445)
+createToggleButton("ShowTracer", 475)
+createToggleButton("WallCheck", 505)
+
+-- GUI Toggle (U tuşu)
+local guiVisible = true
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.U then
+        guiVisible = not guiVisible
+        gui.Enabled = guiVisible
+    end
+end)
+
+-- Drawing Setup
+local fovCircle = Drawing.new("Circle")
+fovCircle.Color = Color3.fromRGB(255, 255, 255)
+fovCircle.Thickness = 1.5
+fovCircle.NumSides = 60
+fovCircle.Filled = false
+
+local tracerLine = Drawing.new("Line")
+tracerLine.Color = Color3.fromRGB(255, 0, 0)
+tracerLine.Thickness = 1.5
+tracerLine.Visible = false
+
+-- Aimbot Logic
+RunService.RenderStepped:Connect(function()
+    local mousePos = UserInputService:GetMouseLocation()
+    fovCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
+    fovCircle.Radius = settings.FOVRadius
+    fovCircle.Visible = settings.ShowFOV
+    tracerLine.Visible = false
+
+    if not settings.Enabled or not UserInputService:IsKeyDown(settings.AimKey) then return end
+
+    local closest, minDist = nil, math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(settings.AimPart) then
+            local part = player.Character[settings.AimPart]
+            local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            local dist = (Camera.CFrame.Position - part.Position).Magnitude
+            local cursorDist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+
+            if onScreen and dist < settings.RenderDistance and cursorDist < settings.FOVRadius then
+                if settings.WallCheck then
+                    local rayParams = RaycastParams.new()
+                    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    rayParams.IgnoreWater = true
+                    local rayResult = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * dist, rayParams)
+                    if rayResult and rayResult.Instance:IsDescendantOf(player.Character) == false then
+                        continue
+                    end
+                end
+                if cursorDist < minDist then
+                    closest = part
+                    minDist = cursorDist
+                end
+            end
+        end
+    end
+
+    if closest then
+        local predPos = closest.Position + (closest.Velocity * settings.Prediction)
+        local direction = (predPos - Camera.CFrame.Position).Unit
+        local newCF = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction)
+        Camera.CFrame = Camera.CFrame:Lerp(newCF, settings.Smoothness)
+
+        if settings.ShowTracer then
+            local screenPos = Camera:WorldToViewportPoint(closest.Position)
+            tracerLine.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+            tracerLine.To = Vector2.new(screenPos.X, screenPos.Y)
+            tracerLine.Visible = true
+        end
+    end
+end)
