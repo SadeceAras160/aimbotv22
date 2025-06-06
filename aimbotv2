@@ -19,6 +19,8 @@ local settings = {
     WallCheck = true
 }
 
+local isAiming = false
+
 --// GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "AimbotGUI"
@@ -33,7 +35,7 @@ frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
 
 local title = Instance.new("TextLabel", frame)
-title.Text = "FutB.wtf"
+title.Text = "🎯 Aimbot Settings"
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 22
 title.Size = UDim2.new(1, 0, 0, 40)
@@ -160,12 +162,16 @@ createToggleButton("ShowFOV", 445)
 createToggleButton("ShowTracer", 475)
 createToggleButton("WallCheck", 505)
 
--- GUI Toggle (U tuşu)
+-- GUI & AimKey Toggle
 local guiVisible = true
 UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.U then
-        guiVisible = not guiVisible
-        gui.Enabled = guiVisible
+    if not gpe then
+        if input.KeyCode == settings.AimKey and settings.Enabled then
+            isAiming = not isAiming
+        elseif input.KeyCode == Enum.KeyCode.U then
+            guiVisible = not guiVisible
+            gui.Enabled = guiVisible
+        end
     end
 end)
 
@@ -189,7 +195,7 @@ RunService.RenderStepped:Connect(function()
     fovCircle.Visible = settings.ShowFOV
     tracerLine.Visible = false
 
-    if not settings.Enabled or not UserInputService:IsKeyDown(settings.AimKey) then return end
+    if not settings.Enabled or not isAiming then return end
 
     local closest, minDist = nil, math.huge
     for _, player in pairs(Players:GetPlayers()) do
@@ -206,7 +212,7 @@ RunService.RenderStepped:Connect(function()
                     rayParams.FilterType = Enum.RaycastFilterType.Blacklist
                     rayParams.IgnoreWater = true
                     local rayResult = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * dist, rayParams)
-                    if rayResult and rayResult.Instance:IsDescendantOf(player.Character) == false then
+                    if rayResult and not rayResult.Instance:IsDescendantOf(player.Character) then
                         continue
                     end
                 end
